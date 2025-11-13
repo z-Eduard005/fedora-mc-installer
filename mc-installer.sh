@@ -95,8 +95,9 @@ EOF
   echo "Creating symlink for Proton prefix..."
   mv "$PFX_PATH" "$INSTALL_DIR/$(basename "$PFX_PATH")"
   ln -s "$INSTALL_DIR/$(basename "$PFX_PATH")" "$STEAM_COMPDATA_DIR"
-  echo "This is a flag file. Don't delete it!" > "$PFX_FILE_FLAG"
+  echo "$(basename "$PFX_PATH")" > "$PFX_FILE_FLAG"
 fi
+[ -z "$PFX_PATH" ] && PFX_PATH="$INSTALL_DIR/$(cat "$PFX_FILE_FLAG")"
 
 # TODO: maybe some "choose proton" functionality
 START_SCRIPT="$PFX_PATH/$MC_REL_PATH/LL.sh"
@@ -104,7 +105,8 @@ cat > "$START_SCRIPT" <<EOF
 export STEAM_COMPAT_CLIENT_INSTALL_PATH="$STEAM_PATH"
 export STEAM_COMPAT_DATA_PATH="$PFX_PATH"
 gamemoderun "$STEAM_PATH/steamapps/common/Proton Hotfix/proton" run "$PFX_PATH/$MC_REL_PATH/LL.exe"
-EOF; chmod +x "$START_SCRIPT"; echo "$(success "File updated - $START_SCRIPT")"
+EOF
+chmod +x "$START_SCRIPT"; echo "$(success "File updated - $START_SCRIPT")"
 
 cat > "$DESKTOP_FILE" <<EOF
 [Desktop Entry]
@@ -114,8 +116,9 @@ Type=Application
 Terminal=false
 Icon=$LL_ICON
 Categories=Application;
-EOF; echo "$(success "File updated - $DESKTOP_FILE")"
+EOF
+echo "$(success "File updated - $DESKTOP_FILE")"
 
-curl -fsSL -o "$LL_ICON" https://raw.githubusercontent.com/z-Eduard005/fedora-mc-installer/main/LL.png
+curl -fsSL -o "$LL_ICON" https://raw.githubusercontent.com/z-Eduard005/fedora-mc-installer/main/LL.png >/dev/null 2>&1
 update-desktop-database "$DESKTOP_ENTRY_PATH"
-echo -e "$(success "Minecraft succusfully installed :)\nYou can play it by launching 'LL' icon in overview")"
+echo -e "$(success "\nMinecraft succusfully installed :)\nYou can play it by launching 'LL' icon in overview")"
