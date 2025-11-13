@@ -1,7 +1,7 @@
 #!/bin/bash
 INSTALL_DIR="$HOME/Programs/proton-legacylauncher"
 LL_URL="https://dl.llaun.ch/legacy/installer"
-LL_FILENAME="ll_installer.exe"
+LL_FILENAME="LegacyLauncher.exe"
 STEAM_PATH="$HOME/.steam/steam"
 STEAM_COMPDATA_DIR="$STEAM_PATH/steamapps/compatdata"
 FIRST_LOCAL_STEAM_APP_ID=2147483647
@@ -49,20 +49,24 @@ fi
 
 if [ ! -f "$INSTALL_DIR/$LL_FILENAME" ]; then
   echo "$(success "Please install legacy-launcher first from opening link")"
-  for i in 3 2 1; do echo -ne "\r$i"; sleep 1; done; echo "\rWaiting..."
+  for i in 3 2 1; do echo -ne "\r$i"; sleep 1; done; echo -ne "\rWaiting..."
   xdg-open "$LL_URL" >/dev/null 2>&1
 
-  f=$(timeout 60s inotifywait -e close_write --format "%f" "$HOME/Downloads" 2>/dev/null)
-  if [ $? -eq 124 ]; then
-    echo "$(err "No new files detected in 1 minute. Exiting.")"; exit 1
-  fi
+  while true; do
+    f=$(timeout 60s inotifywait -e close_write --format "%f" "$HOME/Downloads" 2>/dev/null)
+    [ $? -eq 124 ] && { echo "$(err "No new files detected in 1 minute. Exiting.")"; exit 1; }
+    [[ "$f" =~ \.part$ ]] && continue
+    break
+  done
 
   mv -n "$HOME/Downloads/$f" "$INSTALL_DIR/$LL_FILENAME"
   echo "Moved and renamed $f to $INSTALL_DIR/$LL_FILENAME"
 fi
 
+PFX_PATH=""
 if [ ! -f $PFX_FILE_FLAG ]; then
-  cat <<EOF
+  steam & cat <<EOF
+
 Launching Steam...
 
 Once Steam has launched, follow these steps:
@@ -78,8 +82,8 @@ Continue after all done
 EOF
   ask_confirm "All done?"
 
-  PFX_PATH=""
   for dirname in "$STEAM_COMPDATA_DIR"/*; do
+  [ -d "$dirname" ] && [ ! -L "$dirname" ] || continue
     base=$(basename "$dirname")
     if [[ "$base" =~ ^[0-9]+$ ]] && [ "$base" -gt "$FIRST_LOCAL_STEAM_APP_ID" ]; then
       path="$STEAM_COMPDATA_DIR/$base/$MC_REL_PATH"
