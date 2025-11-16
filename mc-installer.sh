@@ -20,11 +20,10 @@ warn() { printf "\033[1;33m%s\033[0m" "$1"; }
 
 ask_confirm() {
   read -rp "$(warn "$1 [y/N]: ")" proceed
-  if [[ "$proceed" != "y" && "$proceed" != "Y" ]]; then
-    echo "$(err "Aborted.")"; exit 1
-  fi
+  [[ "$proceed" != [yY] ]] && { echo "$(err "Aborted.")"; exit 1; }
 }
 
+sudo -v
 pfx_flag_missing=false
 [ ! -f "$PFX_FILE_FLAG" ] && pfx_flag_missing=true
 $pfx_flag_missing && echo "$(success "Installing tlauncher for steam-proton use :)")"
@@ -37,9 +36,7 @@ if [ ! -d "$STEAM_PATH" ]; then
   fi
 
   sudo dnf install steam || { echo "$(err "Failed to install Steam. Please install it manually.")"; exit 1; }
-  if [ ! -d "$STEAM_PATH" ]; then
-    echo "$(err "Steam did not install correctly")"; exit 1
-  fi
+  [ -d "$STEAM_PATH" ] || { echo "$(err "Steam did not install correctly")"; exit 1; }
 fi
 
 if [ ! -d "$INSTALL_DIR" ]; then
@@ -47,18 +44,19 @@ if [ ! -d "$INSTALL_DIR" ]; then
   mkdir -p "$INSTALL_DIR"
 fi
 
-echo "sh -c \"\$(curl -fsSL "$GITHUB_CONTENT/mc-installer.sh")\"" > "$INSTALLER" || echo "$(err "Script wasn't installed. Please try again.")"
+echo "sh -c \"\$(curl -fsSL "$GITHUB_CONTENT/mc-installer.sh")\"" > "$INSTALLER" || { echo "$(err "Script wasn't installed. Try again.")"; exit 1; }
 chmod +x "$INSTALLER"; echo "$(success "File updated - $(basename "$INSTALLER")")"
 
 if ! command -v inotifywait >/dev/null 2>&1; then
   echo "installing inotify-tools..."
-  sudo dnf install -y inotify-tools
+  sudo dnf install -y inotify-tools || { echo "$(err "Failed to install inotify-tools. Try again.")"; exit 1; }
 fi
 
 if [ ! -f "$INSTALL_DIR/$LL_FILENAME" ]; then
   echo "$(success "Please install legacy-launcher first from opening link")"
   for i in 3 2 1; do echo -ne "\r$i"; sleep 1; done; echo -ne "\rWaiting..."
-  xdg-open "$LL_URL" >/dev/null 2>&1
+  xdg-open "$LL_URL" || { echo "$(err "Failed to open tlauncher link. Try again.")"; exit 1; }
+  sleep 3
 
   while true; do
     f=$(timeout 60s inotifywait -e close_write --format "%f" "$HOME/Downloads" 2>/dev/null)
@@ -67,6 +65,7 @@ if [ ! -f "$INSTALL_DIR/$LL_FILENAME" ]; then
     break
   done
 
+  [ -z "$f" ] && { echo "$(err "Tlauncher download not detected. Try again.")"; exit 1; }
   mv -n "$HOME/Downloads/$f" "$INSTALL_DIR/$LL_FILENAME"
   echo "Moved and renamed $f to $INSTALL_DIR/$LL_FILENAME"
 fi
@@ -74,7 +73,7 @@ fi
 if $pfx_flag_missing; then
   steam >/dev/null 2>&1 & cat <<EOF
 
-Launching Steam...
+Open steam and follow on...
 
 Once Steam has launched, follow these steps:
   1. In Steam, use 'Add a Non-Steam Game' to add: $INSTALL_DIR/$LL_FILENAME
@@ -100,9 +99,12 @@ EOF
   [ -z "$PFX_PATH" ] && { echo "$(err "No Proton folder found! Maybe you forgot to press 'Play' on $LL_FILENAME to initialize proton")"; exit 1; }
 
   echo "Creating symlink for Proton prefix..."
-  mv "$PFX_PATH" "$INSTALL_DIR/$(basename "$PFX_PATH")"
-  ln -s "$INSTALL_DIR/$(basename "$PFX_PATH")" "$STEAM_COMPDATA_DIR"
-  echo "$(basename "$PFX_PATH")" > "$PFX_FILE_FLAG"
+  
+  if [ ! -d "$INSTALL_DIR/$(basename "$PFX_PATH")" ]; then
+    mv "$PFX_PATH" "$INSTALL_DIR/$(basename "$PFX_PATH")"
+    ln -s "$INSTALL_DIR/$(basename "$PFX_PATH")" "$STEAM_COMPDATA_DIR"
+    echo "$(basename "$PFX_PATH")" > "$PFX_FILE_FLAG"
+  fi
 fi
 [ -z "$PFX_PATH" ] && PFX_PATH="$INSTALL_DIR/$(cat "$PFX_FILE_FLAG")"
 
@@ -145,4 +147,6 @@ echo "$(success "File updated - $(basename "$DESKTOP_FILE")")"
 
 sh -c "$(curl -fsSL -o "$LL_ICON" "$GITHUB_CONTENT/LL.png")" || echo "$(warn "Icon wasn't installed. Just run the same command again.")"
 update-desktop-database "$DESKTOP_ENTRY_PATH"
-$pfx_flag_missing && { echo -e "$(success "\nMinecraft succusfully installed :)\nYou can play by launching 'LL' icon in overview")"; echo "$(warn "If you want to cnahge proton version, run this script again - $INSTALLER")"; }
+
+$pfx_flag_missing && echo -e "$(success "\nMinecraft succusfully installed :)\nYou can play by launching 'LL' icon in overview\n")"
+echo "$(warn "If you want to change proton version, run this script again - $INSTALLER")"
