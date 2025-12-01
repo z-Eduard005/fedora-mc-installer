@@ -23,6 +23,15 @@ ask_confirm() {
   [[ "$proceed" != [yY] ]] && { echo "$(err "Aborted.")"; exit 1; }
 }
 
+create_start_script() {
+  cat > "$START_SCRIPT" <<EOF
+export STEAM_COMPAT_CLIENT_INSTALL_PATH="$STEAM_PATH"
+export STEAM_COMPAT_DATA_PATH="$PFX_PATH"
+DRI_PRIME=1 gamemoderun "$STEAM_PATH/steamapps/common/${SELECTED_PROTON:-$DEFAULT_PROTON}/proton" run "$PFX_PATH/$MC_REL_PATH/LL.exe"
+EOF
+  chmod +x "$START_SCRIPT"
+}
+
 sudo -v
 pfx_flag_missing=false
 [ ! -f "$PFX_FILE_FLAG" ] && pfx_flag_missing=true
@@ -103,10 +112,12 @@ EOF
   if [ ! -d "$INSTALL_DIR/$(basename "$PFX_PATH")" ]; then
     mv "$PFX_PATH" "$INSTALL_DIR/$(basename "$PFX_PATH")"
     ln -s "$INSTALL_DIR/$(basename "$PFX_PATH")" "$STEAM_COMPDATA_DIR"
-    echo "$(basename "$PFX_PATH")" > "$PFX_FILE_FLAG"
+    echo "$(basename "$PFX_PATH")" > "$PFX_FILE_FLAG"; chmod -w "$PFX_FILE_FLAG"
   fi
 fi
 [ -z "$PFX_PATH" ] && PFX_PATH="$INSTALL_DIR/$(cat "$PFX_FILE_FLAG")"
+
+START_SCRIPT="$PFX_PATH/$MC_REL_PATH/LL.sh"; create_start_script
 
 protons=()
 while IFS= read -r dir; do
@@ -116,7 +127,6 @@ while IFS= read -r dir; do
     protons+=("$dir")
   fi
 done < <(ls -1 "$STEAM_PATH/steamapps/common" | grep "^Proton" | sort)
-
 [ ${#protons[@]} -eq 0 ] && { echo "$(err "No Proton found")"; exit 1; }
 
 PS3='Choose proton version (1 - default): '
@@ -126,13 +136,7 @@ select SELECTED_PROTON in "${protons[@]}"; do
   fi
 done
 
-START_SCRIPT="$PFX_PATH/$MC_REL_PATH/LL.sh"
-cat > "$START_SCRIPT" <<EOF
-export STEAM_COMPAT_CLIENT_INSTALL_PATH="$STEAM_PATH"
-export STEAM_COMPAT_DATA_PATH="$PFX_PATH"
-gamemoderun "$STEAM_PATH/steamapps/common/$SELECTED_PROTON/proton" run "$PFX_PATH/$MC_REL_PATH/LL.exe"
-EOF
-chmod +x "$START_SCRIPT"; echo "$(success "File updated - $(basename "$START_SCRIPT")")"
+create_start_script; echo "$(success "File updated - $(basename "$START_SCRIPT")")"
 
 cat > "$DESKTOP_FILE" <<EOF
 [Desktop Entry]

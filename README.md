@@ -4,4 +4,3 @@
 ```bash
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/z-Eduard005/fedora-mc-installer/main/mc-installer.sh)"
 ```
-
