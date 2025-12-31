@@ -141,7 +141,7 @@ create_start_script; echo "$(success "File updated - $(basename "$START_SCRIPT")
 cat > "$DESKTOP_FILE" <<EOF
 [Desktop Entry]
 Name=LL
-Exec=$START_SCRIPT
+Exec=/bin/bash -lc "$START_SCRIPT"
 Type=Application
 Terminal=false
 Icon=$LL_ICON
