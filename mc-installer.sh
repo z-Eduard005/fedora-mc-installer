@@ -54,7 +54,8 @@ if [ ! -d "$INSTALL_DIR" ]; then
 fi
 
 echo "sh -c \"\$(curl -fsSL "$GITHUB_CONTENT/mc-installer.sh")\"" > "$INSTALLER" || { echo "$(err "Script wasn't installed. Try again.")"; exit 1; }
-chmod +x "$INSTALLER"; echo "$(success "File updated - $(basename "$INSTALLER")")"
+chmod +x "$INSTALLER"
+echo "$(success "File updated - $(basename "$INSTALLER")")"
 
 if ! command -v inotifywait >/dev/null 2>&1; then
   echo "installing inotify-tools..."
@@ -112,7 +113,8 @@ EOF
   if [ ! -d "$INSTALL_DIR/$(basename "$PFX_PATH")" ]; then
     mv "$PFX_PATH" "$INSTALL_DIR/$(basename "$PFX_PATH")"
     ln -s "$INSTALL_DIR/$(basename "$PFX_PATH")" "$STEAM_COMPDATA_DIR"
-    echo "$(basename "$PFX_PATH")" > "$PFX_FILE_FLAG"; chmod -w "$PFX_FILE_FLAG"
+    echo "$(basename "$PFX_PATH")" > "$PFX_FILE_FLAG"
+    chmod -w "$PFX_FILE_FLAG"
   fi
 fi
 [ -z "$PFX_PATH" ] && PFX_PATH="$INSTALL_DIR/$(cat "$PFX_FILE_FLAG")"
@@ -136,7 +138,8 @@ select SELECTED_PROTON in "${protons[@]}"; do
   fi
 done
 
-create_start_script; echo "$(success "File updated - $(basename "$START_SCRIPT")")"
+create_start_script
+echo "$(success "File updated - $(basename "$START_SCRIPT")")"
 
 cat > "$DESKTOP_FILE" <<EOF
 [Desktop Entry]
