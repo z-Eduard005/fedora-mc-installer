@@ -71,7 +71,16 @@ if [ ! -f "$INSTALL_DIR/$LL_FILENAME" ]; then
   while true; do
     f=$(timeout 60s inotifywait -e close_write --format "%f" "$HOME/Downloads" 2>/dev/null)
     [ $? -eq 124 ] && { echo "$(err "No new files detected in 1 minute. Exiting.")"; exit 1; }
-    [[ "$f" =~ \.part$ ]] && continue
+    [[ "$f" =~ \.(part|crdownload|tmp)$ ]] && continue
+
+    full="$HOME/Downloads/$f"
+    [[ ! -f "$full" ]] && continue
+
+    size1=$(stat -c%s "$full" 2>/dev/null)
+    sleep 1
+    size2=$(stat -c%s "$full" 2>/dev/null)
+    [[ "$size1" != "$size2" ]] && continue
+
     break
   done
 
