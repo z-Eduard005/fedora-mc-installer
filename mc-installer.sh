@@ -45,6 +45,7 @@ if [ ! -d "$STEAM_PATH" ]; then
   fi
 
   sudo dnf install steam || { echo "$(err "Failed to install Steam. Please install it manually.")"; exit 1; }
+  steam >/dev/null 2>&1 &
   [ -d "$STEAM_PATH" ] || { echo "$(err "Steam did not install correctly")"; exit 1; }
 fi
 
@@ -65,7 +66,7 @@ fi
 if [ ! -f "$INSTALL_DIR/$LL_FILENAME" ]; then
   echo "$(success "Please install legacy-launcher first from opening link")"
   for i in 3 2 1; do echo -ne "\r$i"; sleep 1; done; echo -ne "\rWaiting..."
-  xdg-open "$LL_URL" || { echo "$(err "Failed to open tlauncher link. Try again.")"; exit 1; }
+  firefox --new-tab "$LL_URL" 2>&1 || xdg-open "$LL_URL" || { echo "$(err "Failed to open tlauncher link. Try again.")"; exit 1; }
   sleep 3
 
   while true; do
@@ -90,7 +91,7 @@ if [ ! -f "$INSTALL_DIR/$LL_FILENAME" ]; then
 fi
 
 if $pfx_flag_missing; then
-  steam >/dev/null 2>&1 & cat <<EOF
+cat <<EOF
 
 Open steam and follow on...
 
