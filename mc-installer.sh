@@ -66,7 +66,7 @@ fi
 if [ ! -f "$INSTALL_DIR/$LL_FILENAME" ]; then
   echo "$(success "Please install legacy-launcher first from opening link")"
   for i in 3 2 1; do echo -ne "\r$i"; sleep 1; done; echo -ne "\rWaiting..."
-  xdg-open "$LL_URL" &
+  xdg-open "$LL_URL" >/dev/null 2>&1 &
   sleep 3
 
   while true; do
