@@ -65,7 +65,7 @@ fi
 
 if [ ! -f "$INSTALL_DIR/$LL_FILENAME" ]; then
   echo "$(success "Please install legacy-launcher first from opening link")"
-  for i in 3 2 1; do echo -ne "\r$i"; sleep 1; done; echo -ne "\rWaiting..."
+  for i in 3 2 1; do echo -ne "\r$i"; sleep 1; done; echo -ne "\rWaiting...\n"
   xdg-open "$LL_URL" >/dev/null 2>&1 &
   sleep 3
 
@@ -79,12 +79,15 @@ if [ ! -f "$INSTALL_DIR/$LL_FILENAME" ]; then
 
   [ -z "$f" ] && { echo "$(err "Tlauncher download not detected. Try again.")"; exit 1; }
   mv -n "$HOME/Downloads/$f" "$INSTALL_DIR/$LL_FILENAME"
-  echo "Moved and renamed $f to $INSTALL_DIR/$LL_FILENAME"
+  echo "Moved $f to $INSTALL_DIR/$LL_FILENAME"
 fi
 
 if $pfx_flag_missing; then
-cat <<EOF
+  if ! pgrep -x "steam" >/dev/null; then
+    steam >/dev/null 2>&1 &
+  fi
 
+  cat <<EOF
 Open steam and follow on...
 
 Once Steam has launched, follow these steps:
