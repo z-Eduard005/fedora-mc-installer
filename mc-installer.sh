@@ -66,7 +66,7 @@ fi
 if [ ! -f "$INSTALL_DIR/$LL_FILENAME" ]; then
   echo "$(success "Please install legacy-launcher first from opening link")"
   for i in 3 2 1; do echo -ne "\r$i"; sleep 1; done; echo -ne "\rWaiting..."
-  firefox --new-tab "$LL_URL" 2>&1 || xdg-open "$LL_URL" || { echo "$(err "Failed to open tlauncher link. Try again.")"; exit 1; }
+  xdg-open "$LL_URL" &
   sleep 3
 
   while true; do
