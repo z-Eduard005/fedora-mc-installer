@@ -36,6 +36,7 @@ sudo -v
 pfx_flag_missing=false
 [ ! -f "$PFX_FILE_FLAG" ] && pfx_flag_missing=true
 $pfx_flag_missing && echo "$(success "Installing tlauncher for steam-proton use :)")"
+mkdir -p "$INSTALL_DIR"
 
 if [ ! -d "$STEAM_PATH" ]; then
   echo "Steam is not installed. Installing via dnf (RPM version)..."
@@ -47,11 +48,6 @@ if [ ! -d "$STEAM_PATH" ]; then
   sudo dnf install steam || { echo "$(err "Failed to install Steam. Please install it manually.")"; exit 1; }
   steam >/dev/null 2>&1 &
   [ -d "$STEAM_PATH" ] || { echo "$(err "Steam did not install correctly")"; exit 1; }
-fi
-
-if [ ! -d "$INSTALL_DIR" ]; then
-  ask_confirm "Proceed with creating $INSTALL_DIR folder?"
-  mkdir -p "$INSTALL_DIR"
 fi
 
 echo "sh -c \"\$(curl -fsSL "$GITHUB_CONTENT/mc-installer.sh")\"" > "$INSTALLER" || { echo "$(err "Script wasn't installed. Try again.")"; exit 1; }
