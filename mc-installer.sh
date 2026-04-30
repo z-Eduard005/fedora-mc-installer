@@ -87,10 +87,8 @@ if $pfx_flag_missing; then
     steam >/dev/null 2>&1 &
   fi
 
+echo "$(warn "Once Steam has launched, follow these steps:")"
   cat <<EOF
-Open steam and follow on...
-
-Once Steam has launched, follow these steps:
   1. In Steam, use 'Add a Non-Steam Game' to add: $INSTALL_DIR/$LL_FILENAME
   2. Right-click the game entry in Steam and select 'Manage...'
     2.1. Mark it as Hidden!
@@ -99,7 +97,7 @@ Once Steam has launched, follow these steps:
     3.2. Compatibility -> force to use specific compatibility tool -> '$DEFAULT_PROTON'
     3.3. Press Play -> install -> close it without downloading any version!
 
-Continue after all done
+Continue only after all done
 EOF
   ask_confirm "All done?"
 
