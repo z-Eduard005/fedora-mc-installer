@@ -69,21 +69,8 @@ if [ ! -f "$INSTALL_DIR/$LL_FILENAME" ]; then
   xdg-open "$LL_URL" >/dev/null 2>&1 &
   sleep 3
 
-  while true; do
-    f=$(timeout 60s inotifywait -e close_write --format "%f" "$HOME/Downloads" 2>/dev/null)
-    [ $? -eq 124 ] && { echo "$(err "No new files detected in 1 minute. Exiting.")"; exit 1; }
-    [[ "$f" =~ \.(part|crdownload|tmp)$ ]] && continue
-
-    full="$HOME/Downloads/$f"
-    [[ ! -f "$full" ]] && continue
-
-    size1=$(stat -c%s "$full" 2>/dev/null)
-    sleep 1
-    size2=$(stat -c%s "$full" 2>/dev/null)
-    [[ "$size1" != "$size2" ]] && continue
-
-    break
-  done
+  f=$(timeout 60s inotifywait -e moved_to --format "%f" "$HOME/Downloads" 2>/dev/null)
+  [ $? -eq 124 ] && { echo "$(err "No new files detected in 1 minute. Exiting.")"; exit 1; }
 
   [ -z "$f" ] && { echo "$(err "Tlauncher download not detected. Try again.")"; exit 1; }
   mv -n "$HOME/Downloads/$f" "$INSTALL_DIR/$LL_FILENAME"
