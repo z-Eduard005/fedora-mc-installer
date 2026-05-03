@@ -32,7 +32,18 @@ EOF
   chmod +x "$START_SCRIPT"
 }
 
-sudo -v
+if [ "$EUID" -eq 0 ]; then
+  echo "$(err 'Do not run this script with "sudo"!')" >&2
+  exit 1
+fi
+
+sudo -v || exit 1
+while true; do
+  sudo -n true
+  sleep 240
+  kill -0 "$$" || exit
+done 2>/dev/null &
+
 pfx_flag_missing=false
 [ ! -f "$PFX_FILE_FLAG" ] && pfx_flag_missing=true
 $pfx_flag_missing && echo "$(success "Installing tlauncher for steam-proton use :)")"
