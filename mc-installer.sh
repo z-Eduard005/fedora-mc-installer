@@ -46,19 +46,22 @@ done 2>/dev/null &
 
 pfx_flag_missing=false
 [ ! -f "$PFX_FILE_FLAG" ] && pfx_flag_missing=true
-$pfx_flag_missing && echo "$(success "Installing tlauncher for steam-proton use :)")"
+$pfx_flag_missing && echo "$(success "Installing tlauncher for steam-proton use...")"
 mkdir -p "$INSTALL_DIR"
 
 if [ ! -d "$STEAM_PATH" ]; then
   echo "Steam is not installed. Installing via dnf (RPM version)..."
   if flatpak list | grep -q com.valvesoftware.Steam; then
-    echo -e "$(err "Detected Flatpak version of Steam\nPlease uninstall it manually before continuing :(")"
-    exit 1
+    if ask_confirm "Detected Flatpak version of Steam. Do you want to reinstall it as rpm version? (this will delete app data)"; then
+      sudo flatpak remove -y com.valvesoftware.Steam
+    else
+      echo "$(err "This program works only with rpm verion of steam :(")"
+      exit 1
+    fi
   fi
 
-  sudo dnf install steam || { echo "$(err "Failed to install Steam. Please install it manually.")"; exit 1; }
+  sudo dnf install -y steam || { echo "$(err "Failed to install Steam. Please install it manually.")"; exit 1; }
   steam >/dev/null 2>&1 &
-  [ -d "$STEAM_PATH" ] || { echo "$(err "Steam did not install correctly")"; exit 1; }
 fi
 
 echo "sh -c \"\$(curl -fsSL "$GITHUB_CONTENT/mc-installer.sh")\"" > "$INSTALLER" || { echo "$(err "Script wasn't installed. Try again.")"; exit 1; }
