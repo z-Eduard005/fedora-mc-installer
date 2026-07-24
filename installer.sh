@@ -7,12 +7,13 @@ STEAM_COMPDATA_DIR="$STEAM_PATH/steamapps/compatdata"
 FIRST_LOCAL_STEAM_APP_ID=2147483647
 MC_REL_PATH="pfx/drive_c/users/steamuser/AppData/Roaming/.tlauncher/legacy/Minecraft"
 PFX_FILE_FLAG="$INSTALL_DIR/.pfx-created"
-INSTALLER="$INSTALL_DIR/mc-installer.sh"
+INSTALLER="$INSTALL_DIR/installer.sh"
 DESKTOP_ENTRY_PATH="$HOME/.local/share/applications"
 DESKTOP_FILE="$DESKTOP_ENTRY_PATH/LL.desktop"
 LL_ICON="$HOME/.local/share/icons/LL.png"
-GITHUB_CONTENT="https://raw.githubusercontent.com/z-Eduard005/fedora-mc-installer/main"
+GITHUB_CONTENT="https://raw.githubusercontent.com/z-Eduard005/steam-mc-installer/main"
 DEFAULT_PROTON="Proton Hotfix"
+BOOKMARKS_FILE="$HOME/.config/gtk-3.0/bookmarks"
 
 success() { printf "\033[1;32m%s\033[0m" "$1"; }
 err() { printf "\033[1;31m%s\033[0m" "$1"; }
@@ -23,6 +24,27 @@ ask_confirm() {
   [[ "$proceed" != [yY] ]] && { echo "$(err "Aborted.")"; exit 1; }
 }
 
+has_amd_gpus() { [ "$(lspci -d ::03xx | grep -ic amd)" -gt 1 ]; }
+
+pm_install() {
+  local cmd=""
+  if command -v dnf >/dev/null 2>&1; then
+    cmd="sudo dnf install -y"
+  elif command -v apt >/dev/null 2>&1; then
+    cmd="sudo apt update && sudo apt install -y"
+  elif command -v pacman >/dev/null 2>&1; then
+    cmd="sudo pacman -S --noconfirm"
+  elif command -v zypper >/dev/null 2>&1; then
+    cmd="sudo zypper install -y"
+  elif command -v xbps-install >/dev/null 2>&1; then
+    cmd="sudo xbps-install -Sy"
+  else
+    echo "$(err "No supported package manager found. Please install $1 manually")"; exit 1
+  fi
+  $cmd "$1" || { echo "$(err "Failed to install $1. Try again.")"; exit 1; }
+}
+
+# DRI_PRIME=pci-0000_02_00_0: selects the GPU connected to this PCIe bus
 create_start_script() {
   cat > "$START_SCRIPT" <<EOF
 export STEAM_COMPAT_CLIENT_INSTALL_PATH="$STEAM_PATH"
@@ -44,34 +66,35 @@ while true; do
   kill -0 "$$" || exit
 done 2>/dev/null &
 
+command -v gamemoderun >/dev/null 2>&1 || pm_install gamemode
+command -v xdg-open >/dev/null 2>&1 || pm_install xdg-utils
+command -v curl >/dev/null 2>&1 || pm_install curl
+command -v inotifywait >/dev/null 2>&1 || pm_install inotify-tools
+command -v lspci >/dev/null 2>&1 || pm_install pciutils
+
 pfx_flag_missing=false
 [ ! -f "$PFX_FILE_FLAG" ] && pfx_flag_missing=true
 $pfx_flag_missing && echo "$(success "Installing tlauncher for steam-proton use...")"
 mkdir -p "$INSTALL_DIR"
 
 if [ ! -d "$STEAM_PATH" ]; then
-  echo "Steam is not installed. Installing via dnf (RPM version)..."
+  echo "Steam is not installed. Installing via package manager..."
   if flatpak list | grep -q com.valvesoftware.Steam; then
-    if ask_confirm "Detected Flatpak version of Steam. Do you want to reinstall it as rpm version? (this will delete app data)"; then
+    if ask_confirm "Detected Flatpak version of Steam. Do you want to reinstall it as native version? (this will delete app data)"; then
       sudo flatpak remove -y com.valvesoftware.Steam
     else
-      echo "$(err "This program works only with rpm verion of steam :(")"
+      echo "$(err "This program works only with native verion of steam :(")"
       exit 1
     fi
   fi
 
-  sudo dnf install -y steam || { echo "$(err "Failed to install Steam. Please install it manually.")"; exit 1; }
+  pm_install steam
   steam >/dev/null 2>&1 &
 fi
 
 echo "sh -c \"\$(curl -fsSL "$GITHUB_CONTENT/mc-installer.sh")\"" > "$INSTALLER" || { echo "$(err "Script wasn't installed. Try again.")"; exit 1; }
 chmod +x "$INSTALLER"
 echo "$(success "File updated - $(basename "$INSTALLER")")"
-
-if ! command -v inotifywait >/dev/null 2>&1; then
-  echo "installing inotify-tools..."
-  sudo dnf install -y inotify-tools || { echo "$(err "Failed to install inotify-tools. Try again.")"; exit 1; }
-fi
 
 if [ ! -f "$INSTALL_DIR/$LL_FILENAME" ]; then
   echo "$(success "Please install legacy-launcher first from opening link")"
@@ -122,12 +145,15 @@ EOF
   [ -z "$PFX_PATH" ] && { echo "$(err "No Proton folder found! Maybe you forgot to press 'Play' on $LL_FILENAME to initialize proton")"; exit 1; }
 
   echo "Creating symlink for Proton prefix..."
-  
   if [ ! -d "$INSTALL_DIR/$(basename "$PFX_PATH")" ]; then
     mv "$PFX_PATH" "$INSTALL_DIR/$(basename "$PFX_PATH")"
     ln -s "$INSTALL_DIR/$(basename "$PFX_PATH")" "$STEAM_COMPDATA_DIR"
     echo "$(basename "$PFX_PATH")" > "$PFX_FILE_FLAG"
     chmod -w "$PFX_FILE_FLAG"
+  fi
+
+  if ! grep -q "file://$PFX_PATH/$MC_REL_PATH Minecraft" "$BOOKMARKS_FILE" 2>/dev/null; then
+    sed -i "1s|^|file://$PFX_PATH/$MC_REL_PATH Minecraft\n|" "$BOOKMARKS_FILE"
   fi
 fi
 [ -z "$PFX_PATH" ] && PFX_PATH="$INSTALL_DIR/$(cat "$PFX_FILE_FLAG")"
@@ -166,7 +192,7 @@ EOF
 echo "$(success "File updated - $(basename "$DESKTOP_FILE")")"
 
 sh -c "$(curl -fsSL -o "$LL_ICON" "$GITHUB_CONTENT/LL.png")" || echo "$(warn "Icon wasn't installed. Just run the same command again.")"
-update-desktop-database "$DESKTOP_ENTRY_PATH"
+command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database "$DESKTOP_ENTRY_PATH"
 
-$pfx_flag_missing && echo -e "$(success "\nMinecraft succusfully installed :)\nYou can play by launching 'LL' icon in overview\n")"
+$pfx_flag_missing && echo -e "$(success "\nMinecraft successfully installed :)\nYou can play by launching 'LL' desktop file\n")"
 echo "$(warn "If you want to change proton version, run this script again - $INSTALLER")"
