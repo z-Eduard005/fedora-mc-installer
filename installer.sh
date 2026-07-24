@@ -11,7 +11,7 @@ INSTALLER="$INSTALL_DIR/installer.sh"
 DESKTOP_ENTRY_PATH="$HOME/.local/share/applications"
 DESKTOP_FILE="$DESKTOP_ENTRY_PATH/LL.desktop"
 LL_ICON="$HOME/.local/share/icons/LL.png"
-GITHUB_CONTENT="https://raw.githubusercontent.com/z-Eduard005/steam-mc-installer/main"
+GITHUB_CONTENT="https://raw.githubusercontent.com/z-Eduard005/linux-mc-installer/main"
 DEFAULT_PROTON="Proton Hotfix"
 BOOKMARKS_FILE="$HOME/.config/gtk-3.0/bookmarks"
 
