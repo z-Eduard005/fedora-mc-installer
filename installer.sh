@@ -24,20 +24,6 @@ ask_confirm() {
   [[ "$proceed" != [yY] ]] && { echo "$(err "Aborted.")"; exit 1; }
 }
 
-detect_dri_prime() {
-  local onboard=$(lspci -nnk 2>/dev/null | grep -B1 "Onboard" | grep "1002" | awk '{print $1}')
-  local amd_gpus=$(lspci -nnd ::03xx 2>/dev/null | grep "1002")
-  local bus_id
-
-  if [ -n "$onboard" ]; then
-    bus_id=$(echo "$amd_gpus" | grep -v "$onboard" | head -1 | awk '{print $1}')
-  else
-    bus_id=$(echo "$amd_gpus" | head -1 | awk '{print $1}')
-  fi
-
-  [ -n "$bus_id" ] && echo "pci-0000_$(echo "$bus_id" | tr ':.' '_')"
-}
-
 pm_install() {
   local cmd=""
   if command -v dnf >/dev/null 2>&1; then
@@ -57,11 +43,24 @@ pm_install() {
 }
 
 create_start_script() {
-  local dri_prime=$(detect_dri_prime)
   cat > "$START_SCRIPT" <<EOF
+detect_dri_prime() {
+  local onboard=\$(lspci -nnk 2>/dev/null | grep -B1 "Onboard" | grep "1002" | awk '{print \$1}')
+  local amd_gpus=\$(lspci -nnd ::03xx 2>/dev/null | grep "1002")
+  local bus_id
+
+  if [ -n "\$onboard" ]; then
+    bus_id=\$(echo "\$amd_gpus" | grep -v "\$onboard" | head -1 | awk '{print \$1}')
+  else
+    bus_id=\$(echo "\$amd_gpus" | head -1 | awk '{print \$1}')
+  fi
+
+  [ -n "\$bus_id" ] && echo "pci-0000_\$(echo "\$bus_id" | tr ':.' '_')" || echo "1"
+}
+
 export STEAM_COMPAT_CLIENT_INSTALL_PATH="$STEAM_PATH"
 export STEAM_COMPAT_DATA_PATH="$PFX_PATH"
-DRI_PRIME=${dri_prime:-1} gamemoderun "$STEAM_PATH/steamapps/common/${SELECTED_PROTON:-$DEFAULT_PROTON}/proton" run "$PFX_PATH/$MC_REL_PATH/LL.exe"
+DRI_PRIME="\$(detect_dri_prime)" gamemoderun "$STEAM_PATH/steamapps/common/${SELECTED_PROTON:-$DEFAULT_PROTON}/proton" run "$PFX_PATH/$MC_REL_PATH/LL.exe"
 EOF
   chmod +x "$START_SCRIPT"
 }
