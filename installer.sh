@@ -15,9 +15,9 @@ GITHUB_CONTENT="https://raw.githubusercontent.com/z-Eduard005/linux-mc-installer
 DEFAULT_PROTON="Proton Hotfix"
 BOOKMARKS_FILE="$HOME/.config/gtk-3.0/bookmarks"
 
-success() { printf "\033[1;32m%s\033[0m" "$1"; }
-err() { printf "\033[1;31m%s\033[0m" "$1"; }
-warn() { printf "\033[1;33m%s\033[0m" "$1"; }
+success() { printf "\033[1;32m%b\033[0m" "$1"; }
+err() { printf "\033[1;31m%b\033[0m" "$1"; }
+warn() { printf "\033[1;33m%b\033[0m" "$1"; }
 
 ask_confirm() {
   read -rp "$(warn "$1 [y/N]: ")" proceed
@@ -27,9 +27,9 @@ ask_confirm() {
 pm_install() {
   local cmd=""
   if command -v dnf >/dev/null 2>&1; then
-    cmd="sudo dnf install -y"
+    cmd="sudo dnf install -y --skip-unavailable"
   elif command -v apt >/dev/null 2>&1; then
-    cmd="sudo apt install -y"
+    cmd="sudo apt install -y --ignore-missing"
   elif command -v pacman >/dev/null 2>&1; then
     cmd="sudo pacman -S --noconfirm"
   elif command -v zypper >/dev/null 2>&1; then
@@ -85,7 +85,7 @@ command -v lspci >/dev/null 2>&1 || pm_install pciutils
 
 pfx_flag_missing=false
 [ ! -f "$PFX_FILE_FLAG" ] && pfx_flag_missing=true
-$pfx_flag_missing && echo "$(success "Installing tlauncher for steam-proton use...")"
+$pfx_flag_missing && echo "$(success "Installing LegacyLauncher for steam-proton use...")"
 mkdir -p "$INSTALL_DIR"
 
 if [ ! -d "$STEAM_PATH" ]; then
@@ -94,7 +94,7 @@ if [ ! -d "$STEAM_PATH" ]; then
     if ask_confirm "Detected Flatpak version of Steam. Do you want to reinstall it as native version? (this will delete app data)"; then
       sudo flatpak remove -y com.valvesoftware.Steam
     else
-      echo "$(err "This program works only with native verion of steam :(")"
+      echo "$(err "This program works only with native version of steam :(")"
       exit 1
     fi
   fi
@@ -103,12 +103,12 @@ if [ ! -d "$STEAM_PATH" ]; then
   steam >/dev/null 2>&1 &
 fi
 
-echo "sh -c \"\$(curl -fsSL "$GITHUB_CONTENT/mc-installer.sh")\"" > "$INSTALLER" || { echo "$(err "Script wasn't installed. Try again.")"; exit 1; }
+curl -fsSL -o "$INSTALLER" "$GITHUB_CONTENT/installer.sh" || { echo "$(err "Script wasn't installed. Try again.")"; exit 1; }
 chmod +x "$INSTALLER"
 echo "$(success "File updated - $(basename "$INSTALLER")")"
 
 if [ ! -f "$INSTALL_DIR/$LL_FILENAME" ]; then
-  echo "$(success "Please install legacy-launcher first from opening link")"
+  echo "$(success "Please install LegacyLauncher first from opening link")"
   for i in 3 2 1; do echo -ne "\r$i"; sleep 1; done; echo -ne "\rWaiting...\n"
   xdg-open "$LL_URL" >/dev/null 2>&1 &
   sleep 3
@@ -121,7 +121,7 @@ if [ ! -f "$INSTALL_DIR/$LL_FILENAME" ]; then
     break
   done
 
-  [ -z "$f" ] && { echo "$(err "Tlauncher download not detected. Try again.")"; exit 1; }
+  [ -z "$f" ] && { echo "$(err "LegacyLauncher download not detected. Try again.")"; exit 1; }
   mv -n "$HOME/Downloads/$f" "$INSTALL_DIR/$LL_FILENAME"
   echo "Moved $f to $INSTALL_DIR/$LL_FILENAME"
 fi
@@ -131,7 +131,7 @@ if $pfx_flag_missing; then
     steam >/dev/null 2>&1 &
   fi
 
-echo "$(warn "Once Steam has launched, follow these steps:")"
+  echo "$(warn "Once Steam has launched, follow these steps:")"
   cat <<EOF
   1. In Steam, use 'Add a Non-Steam Game' to add: $INSTALL_DIR/$LL_FILENAME
   2. Right-click the game entry in Steam and select 'Manage...'
@@ -146,7 +146,7 @@ EOF
   ask_confirm "All done?"
 
   for dirname in "$STEAM_COMPDATA_DIR"/*; do
-  [ -d "$dirname" ] && [ ! -L "$dirname" ] || continue
+    [ -d "$dirname" ] && [ ! -L "$dirname" ] || continue
     base=$(basename "$dirname")
     if [[ "$base" =~ ^[0-9]+$ ]] && [ "$base" -gt "$FIRST_LOCAL_STEAM_APP_ID" ]; then
       path="$STEAM_COMPDATA_DIR/$base/$MC_REL_PATH"
@@ -202,8 +202,8 @@ Categories=Application;
 EOF
 echo "$(success "File updated - $(basename "$DESKTOP_FILE")")"
 
-sh -c "$(curl -fsSL -o "$LL_ICON" "$GITHUB_CONTENT/LL.png")" || echo "$(warn "Icon wasn't installed. Just run the same command again.")"
+curl -fsSL -o "$LL_ICON" "$GITHUB_CONTENT/LL.png" || echo "$(warn "Icon wasn't installed. Just run the same command again.")"
 command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database "$DESKTOP_ENTRY_PATH"
 
-$pfx_flag_missing && echo -e "$(success "\nMinecraft successfully installed :)\nYou can play by launching 'LL' desktop file\n")"
+$pfx_flag_missing && echo -e "$(success "\nMinecraft successfully installed\nYou can play by launching 'LL' desktop file\n")"
 echo "$(warn "If you want to change proton version, run this script again - $INSTALLER")"
